@@ -1,3 +1,12 @@
-fn main() {
-    println!("Hello, world!");
+mod error;
+mod lexer;
+
+use std::{error::Error, io};
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let input = io::read_to_string(io::stdin())?;
+    let tokens = lexer::lex(&input);
+    println!("{tokens:#?}");
+
+    Ok(())
 }
