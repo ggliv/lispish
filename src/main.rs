@@ -4,37 +4,28 @@ mod eval;
 mod lexer;
 mod parser;
 mod prelude;
+mod runtime;
 
-use std::{
-    error::Error,
-    io::Write,
-};
+use std::{error::Error, io::Write};
 
-use crate::{
-    builtins::init_global_env,
-    eval::{Heap, ObjId},
-    lexer::Token,
-    prelude::LISPISH_PRELUDE,
-};
+use crate::{lexer::Token, prelude::LISPISH_PRELUDE, runtime::Runtime};
 
-fn eval(source: impl AsRef<str>, global_env: ObjId, heap: &mut Heap) -> crate::error::Result<()> {
+fn eval(source: impl AsRef<str>, rt: &mut Runtime) -> crate::error::Result<()> {
     let source = source.as_ref();
     let tokens = lexer::lex(source)?;
     let ast = parser::parse(&tokens)?;
 
     for expr in ast {
-        eval::eval(&expr, global_env, heap)?;
-        heap.gc([global_env]);
+        eval::eval(&expr, rt.global_env, rt)?;
+        rt.heap.gc([rt.global_env]);
     }
 
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut heap = Heap::default();
-    let global_env = init_global_env(&mut heap);
-
-    eval(LISPISH_PRELUDE, global_env, &mut heap)?;
+    let mut rt = Runtime::with_print(Box::new(|s| print!("{}", s)));
+    eval(LISPISH_PRELUDE, &mut rt)?;
 
     let mut line = String::new();
     let mut tokens: Vec<Token> = Vec::new();
@@ -66,11 +57,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         match parser::parse(&tokens) {
             Ok(ast) => {
                 for expr in ast {
-                    match eval::eval(&expr, global_env, &mut heap) {
-                        Ok(val) => println!("=> {}", val.fmt_with(&heap)),
+                    match eval::eval(&expr, rt.global_env, &mut rt) {
+                        Ok(val) => println!("=> {}", val.fmt_with(&rt.heap)),
                         Err(e) => eprintln!("Eval error: {e}"),
                     }
-                    heap.gc(std::iter::once(global_env));
+                    rt.heap.gc(std::iter::once(rt.global_env));
                 }
                 tokens.clear();
             }

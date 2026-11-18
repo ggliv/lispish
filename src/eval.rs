@@ -1,187 +1,6 @@
-use std::collections::HashMap;
-
-use crate::builtins::BuiltinFn;
 use crate::error::{LispishError, Result};
 use crate::parser::Expr;
-
-#[derive(Default, Debug)]
-pub struct Heap {
-    slots: Vec<Option<HeapSlot>>,
-    free_slots: Vec<ObjId>,
-}
-
-impl Heap {
-    pub(crate) fn alloc(&mut self, obj: HeapObj) -> ObjId {
-        let new = Some(HeapSlot { marked: false, obj });
-        if let Some(free_slot) = self.free_slots.pop() {
-            self.slots[free_slot.0] = new;
-            ObjId(free_slot.0)
-        } else {
-            self.slots.push(new);
-            ObjId(self.slots.len() - 1)
-        }
-    }
-
-    pub(crate) fn alloc_val(&mut self, obj: HeapObj) -> Value {
-        Value::Obj(self.alloc(obj))
-    }
-
-    pub(crate) fn get(&self, id: ObjId) -> &HeapObj {
-        &self
-            .slots
-            .get(id.0)
-            .and_then(|o| o.as_ref())
-            .unwrap_or_else(|| panic!("Dangling object ID {}", id.0))
-            .obj
-    }
-
-    pub(crate) fn get_mut(&mut self, id: ObjId) -> &mut HeapObj {
-        &mut self
-            .slots
-            .get_mut(id.0)
-            .and_then(|o| o.as_mut())
-            .unwrap_or_else(|| panic!("Dangling object ID {}", id.0))
-            .obj
-    }
-
-    fn env_get(&self, env: ObjId, name: &str) -> Result<Value> {
-        let mut env = &Some(env);
-
-        while let Some(e) = env {
-            let HeapObj::Env { bindings, parent } = self.get(*e) else {
-                panic!("Expected env object at ID {}", e.0);
-            };
-
-            if let Some(v) = bindings.get(name) {
-                return Ok(*v);
-            }
-
-            env = parent;
-        }
-
-        Err(LispishError::UnboundSymbol(name.into()))
-    }
-
-    fn mark(&mut self, root: ObjId) {
-        let mut to_mark = vec![root];
-
-        while let Some(id) = to_mark.pop() {
-            let slot = self
-                .slots
-                .get_mut(id.0)
-                .and_then(|o| o.as_mut())
-                .unwrap_or_else(|| panic!("Dangling object ID {}", id.0));
-            if slot.marked {
-                // don't get stuck in loops
-                continue;
-            }
-            slot.marked = true;
-
-            match &slot.obj {
-                HeapObj::List(l) => {
-                    for child in l {
-                        if let Value::Obj(child_id) = child {
-                            to_mark.push(*child_id);
-                        }
-                    }
-                }
-                HeapObj::Closure { env, .. } => to_mark.push(*env),
-                HeapObj::Env {
-                    bindings, parent, ..
-                } => {
-                    if let Some(p) = parent {
-                        to_mark.push(*p);
-                    }
-                    for child in bindings.values() {
-                        if let Value::Obj(child_id) = child {
-                            to_mark.push(*child_id);
-                        }
-                    }
-                }
-                _ => (),
-            }
-        }
-    }
-
-    pub fn gc(&mut self, roots: impl IntoIterator<Item = ObjId>) {
-        // mark and sweep
-
-        for slot in self.slots.iter_mut().flatten() {
-            slot.marked = false;
-        }
-
-        for root in roots {
-            self.mark(root);
-        }
-
-        for (i, slot) in self.slots.iter_mut().enumerate() {
-            if let Some(s) = slot
-                && !s.marked
-            {
-                self.free_slots.push(ObjId(i));
-                *slot = None;
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ObjId(usize);
-
-#[derive(Debug, Clone)]
-struct HeapSlot {
-    marked: bool,
-    obj: HeapObj,
-}
-
-#[derive(Debug, Clone)]
-pub enum HeapObj {
-    Symbol(String),
-    String(String),
-    List(Vec<Value>),
-    Closure {
-        params: Vec<String>,
-        body: Vec<Expr>,
-        env: ObjId,
-    },
-    Env {
-        bindings: HashMap<String, Value>,
-        parent: Option<ObjId>,
-    },
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum Value {
-    Number(f64),
-    Bool(bool),
-    Builtin(BuiltinFn, crate::builtins::BuiltinType),
-    Obj(ObjId),
-}
-
-impl Value {
-    pub fn fmt_with(&self, heap: &Heap) -> String {
-        match self {
-            Value::Number(n) => n.to_string(),
-            Value::Bool(true) => "#t".to_string(),
-            Value::Bool(false) => "#f".to_string(),
-            Value::Builtin(_, builtin_type) => format!("<builtin:{}>", builtin_type),
-            Value::Obj(obj_id) => match heap.get(*obj_id) {
-                HeapObj::Symbol(s) => s.clone(),
-                HeapObj::String(s) => s.clone(),
-                HeapObj::List(values) => format!(
-                    "({})",
-                    values
-                        .iter()
-                        .map(|v| v.fmt_with(heap))
-                        .collect::<Vec<_>>()
-                        .join(" ")
-                ),
-                HeapObj::Closure { .. } => "#<closure>".to_string(),
-                HeapObj::Env { .. } => "#<env>".to_string(),
-            },
-        }
-    }
-}
+use crate::runtime::*;
 
 fn sf_quote(args: &[Expr], heap: &mut Heap) -> Result<Value> {
     if args.len() != 1 {
@@ -206,7 +25,7 @@ fn sf_quote(args: &[Expr], heap: &mut Heap) -> Result<Value> {
     }
 }
 
-fn sf_if(args: &[Expr], env: ObjId, heap: &mut Heap) -> Result<Value> {
+fn sf_if(args: &[Expr], env: ObjId, rt: &mut Runtime) -> Result<Value> {
     if !matches!(args.len(), 2 | 3) {
         return Err(LispishError::ArityMismatch {
             name: "if".into(),
@@ -219,9 +38,9 @@ fn sf_if(args: &[Expr], env: ObjId, heap: &mut Heap) -> Result<Value> {
     let if_true = &args[1];
     let if_false = &args.get(2);
 
-    let test_val = eval(test, env, heap)?;
+    let test_val = eval(test, env, rt)?;
     let is_truthy = match test_val {
-        Value::Obj(id) => match heap.get(id) {
+        Value::Obj(id) => match rt.heap.get(id) {
             HeapObj::List(l) => !l.is_empty(),
             _ => true,
         },
@@ -230,11 +49,11 @@ fn sf_if(args: &[Expr], env: ObjId, heap: &mut Heap) -> Result<Value> {
     };
 
     if is_truthy {
-        eval(if_true, env, heap)
+        eval(if_true, env, rt)
     } else if let Some(false_expr) = if_false {
-        eval(false_expr, env, heap)
+        eval(false_expr, env, rt)
     } else {
-        Ok(heap.alloc_val(HeapObj::List(Vec::new())))
+        Ok(rt.heap.alloc_val(HeapObj::List(Vec::new())))
     }
 }
 
@@ -264,7 +83,7 @@ fn sf_lambda(args: &[Expr], env: ObjId, heap: &mut Heap) -> Result<Value> {
     Ok(heap.alloc_val(HeapObj::Closure { params, body, env }))
 }
 
-fn sf_define(args: &[Expr], env: ObjId, heap: &mut Heap) -> Result<Value> {
+fn sf_define(args: &[Expr], env: ObjId, rt: &mut Runtime) -> Result<Value> {
     if args.len() != 2 {
         return Err(LispishError::ArityMismatch {
             name: "define".into(),
@@ -277,12 +96,12 @@ fn sf_define(args: &[Expr], env: ObjId, heap: &mut Heap) -> Result<Value> {
         return Err(LispishError::TypeMismatch);
     };
 
-    let val = eval(&args[1], env, heap)?;
+    let val = eval(&args[1], env, rt)?;
 
     let HeapObj::Env {
         bindings: env_bindings,
         ..
-    } = heap.get_mut(env)
+    } = rt.heap.get_mut(env)
     else {
         panic!("Expected env at heap ID {}", env.0);
     };
@@ -292,9 +111,11 @@ fn sf_define(args: &[Expr], env: ObjId, heap: &mut Heap) -> Result<Value> {
     Ok(val)
 }
 
-fn apply(f: Value, args: &[Value], heap: &mut Heap) -> Result<Value> {
+fn apply(f: Value, args: &[Value], rt: &mut Runtime) -> Result<Value> {
+    let heap = &mut rt.heap;
+
     match f {
-        Value::Builtin(b, _) => b(args, heap),
+        Value::Builtin(b, _) => b(args, rt),
         Value::Obj(id) => {
             let HeapObj::Closure { params, body, env } = heap.get(id) else {
                 return Err(LispishError::TypeMismatch);
@@ -316,7 +137,7 @@ fn apply(f: Value, args: &[Value], heap: &mut Heap) -> Result<Value> {
 
             let mut result = heap.alloc_val(HeapObj::List(Vec::new()));
             for expr in body {
-                result = eval(&expr, new_env, heap)?;
+                result = eval(&expr, new_env, rt)?;
             }
             Ok(result)
         }
@@ -324,11 +145,13 @@ fn apply(f: Value, args: &[Value], heap: &mut Heap) -> Result<Value> {
     }
 }
 
-pub fn eval(expr: &Expr, env: ObjId, heap: &mut Heap) -> Result<Value> {
+pub fn eval(expr: &Expr, env: ObjId, rt: &mut Runtime) -> Result<Value> {
+    let heap = &mut rt.heap;
+
     match expr {
         Expr::Symbol(s) => heap.env_get(env, s),
         Expr::Number(n) => Ok(Value::Number(*n)),
-        Expr::String(s) => Ok(heap.alloc_val(HeapObj::String(s.clone()))),
+        Expr::String(s) => Ok(rt.heap.alloc_val(HeapObj::String(s.clone()))),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
         Expr::List(exprs) => {
             let Some((head, tail)) = exprs.split_first() else {
@@ -337,20 +160,20 @@ pub fn eval(expr: &Expr, env: ObjId, heap: &mut Heap) -> Result<Value> {
 
             if let Expr::Symbol(sym) = head {
                 match sym.as_str() {
-                    "quote" => return sf_quote(tail, heap),
-                    "if" => return sf_if(tail, env, heap),
-                    "lambda" => return sf_lambda(tail, env, heap),
-                    "define" => return sf_define(tail, env, heap),
+                    "quote" => return sf_quote(tail,&mut  rt.heap),
+                    "if" => return sf_if(tail, env, rt),
+                    "lambda" => return sf_lambda(tail, env, &mut rt.heap),
+                    "define" => return sf_define(tail, env, rt),
                     _ => (),
                 }
             }
 
-            let f = eval(head, env, heap)?;
+            let f = eval(head, env, rt)?;
             let args = tail
                 .iter()
-                .map(|e| eval(e, env, heap))
+                .map(|e| eval(e, env, rt))
                 .collect::<Result<Vec<_>>>()?;
-            apply(f, args.as_slice(), heap)
+            apply(f, args.as_slice(), rt)
         }
     }
 }

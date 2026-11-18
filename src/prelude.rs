@@ -17,26 +17,20 @@ pub const LISPISH_PRELUDE: &str = /* lisp */
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        builtins::init_global_env,
-        error::Result,
-        eval::{self, Heap},
-        lexer, parser,
-    };
+    use crate::{error::Result, eval, lexer, parser, runtime::Runtime};
 
     use super::*;
 
     #[test]
     fn evaluate_prelude() -> Result<()> {
-        let mut heap = Heap::default();
-        let global_env = init_global_env(&mut heap);
+        let mut rt = Runtime::with_print(Box::new(|s| print!("{}", s)));
 
         let tokens = lexer::lex(LISPISH_PRELUDE)?;
         let ast = parser::parse(&tokens)?;
 
         for expr in ast {
-            eval::eval(&expr, global_env, &mut heap)?;
-            heap.gc([global_env]);
+            eval::eval(&expr, rt.global_env, &mut rt)?;
+            rt.heap.gc([rt.global_env]);
         }
 
         Ok(())
