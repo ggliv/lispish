@@ -32,17 +32,21 @@ pub enum BuiltinType {
 
 impl Display for BuiltinType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            BuiltinType::Cons => "cons",
-            BuiltinType::Car => "car",
-            BuiltinType::Cdr => "cdr",
-            BuiltinType::Eq => "eq?",
-            BuiltinType::Atom => "atom?",
-            BuiltinType::Add => "+",
-            BuiltinType::Sub => "-",
-            BuiltinType::Lt => "<",
-            BuiltinType::Print => "print",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                BuiltinType::Cons => "cons",
+                BuiltinType::Car => "car",
+                BuiltinType::Cdr => "cdr",
+                BuiltinType::Eq => "eq?",
+                BuiltinType::Atom => "atom?",
+                BuiltinType::Add => "+",
+                BuiltinType::Sub => "-",
+                BuiltinType::Lt => "<",
+                BuiltinType::Print => "print",
+            }
+        )
     }
 }
 
@@ -209,5 +213,5 @@ pub fn print(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     for arg in args {
         (rt.on_print)(&arg.fmt_with(&rt.heap));
     }
-    Ok(rt.heap.alloc_val(HeapObj::List(Vec::new())))
+    Ok(rt.heap.nil())
 }

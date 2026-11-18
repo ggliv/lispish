@@ -53,7 +53,7 @@ fn sf_if(args: &[Expr], env: ObjId, rt: &mut Runtime) -> Result<Value> {
     } else if let Some(false_expr) = if_false {
         eval(false_expr, env, rt)
     } else {
-        Ok(rt.heap.alloc_val(HeapObj::List(Vec::new())))
+        Ok(rt.heap.nil())
     }
 }
 
@@ -135,7 +135,7 @@ fn apply(f: Value, args: &[Value], rt: &mut Runtime) -> Result<Value> {
                 parent: Some(*env),
             });
 
-            let mut result = heap.alloc_val(HeapObj::List(Vec::new()));
+            let mut result = heap.nil();
             for expr in body {
                 result = eval(&expr, new_env, rt)?;
             }
@@ -160,7 +160,7 @@ pub fn eval(expr: &Expr, env: ObjId, rt: &mut Runtime) -> Result<Value> {
 
             if let Expr::Symbol(sym) = head {
                 match sym.as_str() {
-                    "quote" => return sf_quote(tail,&mut  rt.heap),
+                    "quote" => return sf_quote(tail, &mut rt.heap),
                     "if" => return sf_if(tail, env, rt),
                     "lambda" => return sf_lambda(tail, env, &mut rt.heap),
                     "define" => return sf_define(tail, env, rt),

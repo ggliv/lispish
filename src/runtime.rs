@@ -15,7 +15,7 @@ pub struct Runtime {
 impl Runtime {
     /// Create a new runtime with builtins and prelude loaded
     pub fn with_print(on_print: Box<dyn FnMut(&str)>) -> Self {
-        let mut heap = Heap::default();
+        let mut heap = Heap::new();
 
         let builtin_bindings: HashMap<_, _> = BUILTINS
             .iter()
@@ -28,18 +28,37 @@ impl Runtime {
         });
 
         Self {
-            heap, global_env, on_print
+            heap,
+            global_env,
+            on_print,
         }
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct Heap {
     slots: Vec<Option<HeapSlot>>,
     free_slots: Vec<ObjId>,
+    nil_id: ObjId,
 }
 
 impl Heap {
+    pub fn new() -> Self {
+        let mut new_heap = Self {
+            slots: Vec::default(),
+            free_slots: Vec::default(),
+            nil_id: ObjId(0),
+        };
+
+        new_heap.nil_id = new_heap.alloc(HeapObj::List(Vec::new()));
+
+        new_heap
+    }
+
+    pub fn nil(&self) -> Value {
+        Value::Obj(self.nil_id)
+    }
+
     pub(crate) fn alloc(&mut self, obj: HeapObj) -> ObjId {
         let new = Some(HeapSlot { marked: false, obj });
         if let Some(free_slot) = self.free_slots.pop() {
@@ -138,6 +157,11 @@ impl Heap {
         for slot in self.slots.iter_mut().flatten() {
             slot.marked = false;
         }
+
+        self.slots[self.nil_id.0]
+            .as_mut()
+            .expect("nil_id must point to an object")
+            .marked = true;
 
         for root in roots {
             self.mark(root);

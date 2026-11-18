@@ -10,7 +10,9 @@ pub enum Expr {
     List(Vec<Expr>),
 }
 
-pub fn parse_expr<'a, T: Iterator<Item = &'a Token>>(tokens: &mut std::iter::Peekable<T>) -> Result<Expr> {
+pub fn parse_expr<'a, T: Iterator<Item = &'a Token>>(
+    tokens: &mut std::iter::Peekable<T>,
+) -> Result<Expr> {
     let token = tokens.next().ok_or(LispishError::UnexpectedEof)?;
 
     match token {
