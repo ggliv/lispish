@@ -10,14 +10,14 @@ pub enum Expr {
     List(Vec<Expr>),
 }
 
-pub fn parse_expr<T: Iterator<Item = Token>>(tokens: &mut std::iter::Peekable<T>) -> Result<Expr> {
+pub fn parse_expr<'a, T: Iterator<Item = &'a Token>>(tokens: &mut std::iter::Peekable<T>) -> Result<Expr> {
     let token = tokens.next().ok_or(LispishError::UnexpectedEof)?;
 
     match token {
         Token::LParen => {
             let mut list = Vec::new();
             while let Some(t) = tokens.peek()
-                && *t != Token::RParen
+                && **t != Token::RParen
             {
                 list.push(parse_expr(tokens)?);
             }
@@ -30,19 +30,19 @@ pub fn parse_expr<T: Iterator<Item = Token>>(tokens: &mut std::iter::Peekable<T>
             }
         }
         // lparent match above should consume all rparens
-        Token::RParen => Err(LispishError::UnexpectedToken(token)),
+        Token::RParen => Err(LispishError::UnexpectedToken(token.clone())),
         Token::Quote => {
             let next_expr = parse_expr(tokens)?;
             Ok(Expr::List(vec![Expr::Symbol("quote".into()), next_expr]))
         }
-        Token::Symbol(s) => Ok(Expr::Symbol(s)),
-        Token::Number(n) => Ok(Expr::Number(n)),
-        Token::String(s) => Ok(Expr::String(s)),
-        Token::Bool(b) => Ok(Expr::Bool(b)),
+        Token::Symbol(s) => Ok(Expr::Symbol(s.clone())),
+        Token::Number(n) => Ok(Expr::Number(*n)),
+        Token::String(s) => Ok(Expr::String(s.clone())),
+        Token::Bool(b) => Ok(Expr::Bool(*b)),
     }
 }
 
-pub fn parse(tokens: impl IntoIterator<Item = Token>) -> Result<Vec<Expr>> {
+pub fn parse<'a>(tokens: impl IntoIterator<Item = &'a Token>) -> Result<Vec<Expr>> {
     let mut exprs = Vec::new();
 
     let mut iter = tokens.into_iter().peekable();

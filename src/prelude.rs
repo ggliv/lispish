@@ -1,4 +1,4 @@
-pub const LISPISH_PRELUDE: &'static str = /* lisp */
+pub const LISPISH_PRELUDE: &str = /* lisp */
     r##"
     ; logic
     (define not (lambda (x) (if x #f #t)))
@@ -32,7 +32,7 @@ mod test {
         let global_env = init_global_env(&mut heap);
 
         let tokens = lexer::lex(LISPISH_PRELUDE)?;
-        let ast = parser::parse(tokens)?;
+        let ast = parser::parse(&tokens)?;
 
         for expr in ast {
             eval::eval(&expr, global_env, &mut heap)?;
