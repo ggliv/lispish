@@ -9,6 +9,15 @@ pub enum LispishError {
     UnterminatedString(String),
     UnexpectedEof,
     UnexpectedToken(Token),
+    EmptyApplication,
+    ArityMismatch {
+        name: String,
+        expected: usize,
+        found: usize,
+    },
+    TypeMismatch,
+    UnboundSymbol(String),
+    EmptyList,
 }
 
 impl std::fmt::Display for LispishError {
@@ -18,6 +27,15 @@ impl std::fmt::Display for LispishError {
             LispishError::UnterminatedString(s) => write!(f, "Unterminated string literal: {s}"),
             LispishError::UnexpectedEof => write!(f, "Unexpected end of input"),
             LispishError::UnexpectedToken(t) => write!(f, "Unexpected token: {t:?}"),
+            LispishError::EmptyApplication => write!(f, "Cannot evaluate empty list ()"),
+            LispishError::ArityMismatch {
+                name,
+                expected,
+                found,
+            } => write!(f, "`{name}` expected {expected} arguments, got {found}"),
+            LispishError::TypeMismatch => write!(f, "Type mismatch"),
+            LispishError::UnboundSymbol(s) => write!(f, "Unbound symbol {s}"),
+            LispishError::EmptyList => write!(f, "Empty list"),
         }
     }
 }
