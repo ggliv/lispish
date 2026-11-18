@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Ok(ast) => {
                 for expr in ast {
                     match eval::eval(&expr, global_env, &mut heap) {
-                        Ok(val) => println!("=> {}", val.to_string(&heap)),
+                        Ok(val) => println!("=> {}", val.fmt_with(&heap)),
                         Err(e) => eprintln!("Eval error: {e}"),
                     }
                     heap.gc(std::iter::once(global_env));

@@ -220,7 +220,7 @@ pub fn lt(args: &[Value], _heap: &mut Heap) -> Result<Value> {
 
 pub fn print(args: &[Value], heap: &mut Heap) -> Result<Value> {
     for arg in args {
-        print!("{}", arg.to_string(heap));
+        print!("{}", arg.fmt_with(heap));
     }
     Ok(heap.alloc_val(HeapObj::List(Vec::new())))
 }

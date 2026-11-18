@@ -159,7 +159,7 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn to_string(&self, heap: &Heap) -> String {
+    pub fn fmt_with(&self, heap: &Heap) -> String {
         match self {
             Value::Number(n) => n.to_string(),
             Value::Bool(true) => "#t".to_string(),
@@ -172,7 +172,7 @@ impl Value {
                     "({})",
                     values
                         .iter()
-                        .map(|v| v.to_string(heap))
+                        .map(|v| v.fmt_with(heap))
                         .collect::<Vec<_>>()
                         .join(" ")
                 ),
