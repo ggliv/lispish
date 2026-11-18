@@ -1,7 +1,8 @@
+use std::collections::HashMap;
 use std::fmt::Display;
 
 use crate::error::{LispishError, Result};
-use crate::eval::{Heap, HeapObj, Value};
+use crate::eval::{Heap, HeapObj, ObjId, Value};
 
 pub type BuiltinFn = fn(&[Value], &mut Heap) -> Result<Value>;
 
@@ -16,6 +17,18 @@ pub const BUILTINS: &[(&str, BuiltinType, BuiltinFn)] = &[
     ("<", BuiltinType::Lt, lt),
     ("print", BuiltinType::Print, print),
 ];
+
+pub fn init_global_env(heap: &mut Heap) -> ObjId {
+    let builtin_bindings: HashMap<_, _> = BUILTINS
+        .iter()
+        .map(|b| (b.0.to_string(), Value::Builtin(b.2, b.1)))
+        .collect();
+
+    heap.alloc(HeapObj::Env {
+        bindings: builtin_bindings,
+        parent: None,
+    })
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuiltinType {
