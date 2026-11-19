@@ -30,7 +30,7 @@ mod test {
 
         for expr in ast {
             eval::eval(&expr, rt.global_env, &mut rt)?;
-            rt.heap.gc([rt.global_env]);
+            rt.gc();
         }
 
         Ok(())

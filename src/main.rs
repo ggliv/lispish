@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         Ok(val) => println!("=> {}", val.fmt_with(&rt.heap)),
                         Err(e) => eprintln!("Eval error: {e}"),
                     }
-                    rt.heap.gc(std::iter::once(rt.global_env));
+                    rt.gc();
                 }
                 tokens.clear();
             }

@@ -33,6 +33,10 @@ impl Runtime {
             on_print,
         }
     }
+
+    pub fn gc(&mut self) {
+        self.heap.gc(std::iter::once(self.global_env))
+    }
 }
 
 #[derive(Debug)]

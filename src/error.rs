@@ -24,7 +24,9 @@ pub enum LispishError {
 impl std::fmt::Display for LispishError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LispishError::InvalidEscapeSequence(c) => write!(f, "Invalid character escape sequence: \\{c}"),
+            LispishError::InvalidEscapeSequence(c) => {
+                write!(f, "Invalid character escape sequence: \\{c}")
+            }
             LispishError::InvalidNumber(n) => write!(f, "Invalid number literal: {n}"),
             LispishError::UnterminatedString(s) => write!(f, "Unterminated string literal: {s}"),
             LispishError::UnexpectedEof => write!(f, "Unexpected end of input"),
