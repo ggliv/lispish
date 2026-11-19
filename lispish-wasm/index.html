@@ -42,7 +42,11 @@
     const prompt = document.getElementById("prompt");
     const input = document.getElementById("in");
 
-    document.addEventListener("click", () => {
+    document.addEventListener("click", e => {
+      if (e.target.closest("a[href]")) {
+        return;
+      }
+
       if (window.getSelection().toString().length === 0) {
         input.focus();
       }
