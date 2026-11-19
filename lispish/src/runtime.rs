@@ -43,6 +43,8 @@ impl Runtime {
             eval(&prelude_expr, global_env, &mut rt).expect("Failed to eval prelude");
         }
 
+        rt.gc();
+
         rt
     }
 
