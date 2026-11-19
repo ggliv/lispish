@@ -5,3 +5,10 @@ version = 4
 [[package]]
 name = "lispish"
 version = "0.1.0"
+
+[[package]]
+name = "lispish-cli"
+version = "0.1.0"
+dependencies = [
+ "lispish",
+]

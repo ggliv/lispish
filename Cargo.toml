@@ -1,6 +1,8 @@
-[package]
-name = "lispish"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
+[workspace]
+resolver = "2"
+members = [
+    "lispish",
+    "lispish-cli",
+    #"lispish-wasm",
+]
+default-members = ["lispish-cli"]
