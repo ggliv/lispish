@@ -213,5 +213,5 @@ pub fn print(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     for arg in args {
         (rt.on_print)(&arg.fmt_with(&rt.heap));
     }
-    Ok(rt.heap.nil())
+    Ok(args.last().copied().unwrap_or(rt.heap.nil()))
 }
