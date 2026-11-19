@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lispish REPL</title>
+  <style>
+    body {
+      font-family: monospace;
+    }
+    pre {
+      margin: 0;
+    }
+    .row {
+      display: flex;
+    }
+    input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font: inherit;
+    }
+  </style>
+</head>
+<body>
+  <pre id="out"></pre>
+  <div class="row">
+    <span id="prompt">lispish&gt; </span>
+    <input id="in" type="text" autofocus />
+  </div>
+
+  <script type="module">
+    import init, { Lispish } from "./pkg/lispish_wasm.js";
+
+    const out = document.getElementById("out");
+    const prompt = document.getElementById("prompt");
+    const input = document.getElementById("in");
+
+    window.lispishPrint = (text) => {
+      out.textContent += text + "\n";
+    };
+
+    await init();
+    const repl = new Lispish();
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const line = input.value;
+        input.value = "";
+
+        out.textContent += prompt.textContent + line + "\n";
+        out.textContent += repl.eval_line(line);
+        prompt.textContent = repl.prompt();
+      }
+    });
+  </script>
+</body>
+</html>
