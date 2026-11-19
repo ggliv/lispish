@@ -13,6 +13,8 @@ pub const BUILTINS: &[(&str, BuiltinType, BuiltinFn)] = &[
     ("atom?", BuiltinType::Atom, atom),
     ("+", BuiltinType::Add, add),
     ("-", BuiltinType::Sub, sub),
+    ("*", BuiltinType::Mul, mul),
+    ("/", BuiltinType::Div, div),
     ("<", BuiltinType::Lt, lt),
     ("print", BuiltinType::Print, print),
 ];
@@ -26,6 +28,8 @@ pub enum BuiltinType {
     Atom,
     Add,
     Sub,
+    Mul,
+    Div,
     Lt,
     Print,
 }
@@ -43,6 +47,8 @@ impl Display for BuiltinType {
                 BuiltinType::Atom => "atom?",
                 BuiltinType::Add => "+",
                 BuiltinType::Sub => "-",
+                BuiltinType::Mul => "*",
+                BuiltinType::Div => "/",
                 BuiltinType::Lt => "<",
                 BuiltinType::Print => "print",
             }
@@ -192,6 +198,34 @@ pub fn sub(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
 
     Ok(Value::Number(
         nums.iter().skip(1).fold(nums[0], |acc, n| acc - n),
+    ))
+}
+
+pub fn mul(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
+    if args.len() < 2 {
+        return Err(LispishError::ArityMismatch {
+            name: "mul".into(),
+            expected: 2,
+            found: args.len(),
+        });
+    };
+    let nums: Vec<f64> = all_nums(args).ok_or(LispishError::TypeMismatch)?;
+
+    Ok(Value::Number(nums.iter().fold(1., |acc, n| n * acc)))
+}
+
+pub fn div(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
+    if args.len() < 2 {
+        return Err(LispishError::ArityMismatch {
+            name: "div".into(),
+            expected: 2,
+            found: args.len(),
+        });
+    };
+    let nums: Vec<f64> = all_nums(args).ok_or(LispishError::TypeMismatch)?;
+
+    Ok(Value::Number(
+        nums.iter().skip(1).fold(nums[0], |acc, n| acc / n),
     ))
 }
 
