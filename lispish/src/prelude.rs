@@ -12,7 +12,10 @@ pub const LISPISH_PRELUDE: &str = /* lisp */
     (define <= (lambda (a b) (not (< b a))))
     (define null? (lambda (x) (eq? x '())))
     ; functional
-    ; TODO map filter any all
+    (define map (lambda (fn c) (if (null? c) '() (cons (fn (car c)) (map fn (cdr c))))))
+    (define filter (lambda (pred c) (if (null? c) c (if (pred (car c)) (cons (car c) (filter pred (cdr c))) (filter pred (cdr c))))))
+    (define any (lambda (pred c) (if (null? c) #f (if (pred (car c)) #t (any pred (cdr c))))))
+    (define all (lambda (pred c) (if (null? c) #t (if (pred (car c)) (all pred (cdr c)) #f))))
 "##;
 
 #[cfg(test)]
