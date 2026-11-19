@@ -1,75 +1,84 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lispish REPL</title>
-  <style>
-    :root {
-      color-scheme: light dark;
-    }
-    body {
-      font-family: monospace;
-      font-size: 16px;
-    }
-    pre {
-      margin: 0;
-    }
-    .row {
-      display: flex;
-    }
-    input {
-      flex: 1;
-      border: none;
-      outline: none;
-      font: inherit;
-      background: transparent;
-      color: inherit;
-    }
-  </style>
-</head>
-<body>
-  <p>Lispish REPL (<a href="https://github.com/ggliv/lispish">source code</a>)</p>
-  <pre id="out"></pre>
-  <div class="row">
-    <span id="prompt">lispish&gt; </span>
-    <input id="in" type="text" autocomplete="false" autocapitalize="false" spellcheck="false" autofocus />
-  </div>
-
-  <script type="module">
-    import init, { Lispish } from "./pkg/lispish_wasm.js";
-
-    const out = document.getElementById("out");
-    const prompt = document.getElementById("prompt");
-    const input = document.getElementById("in");
-
-    document.addEventListener("click", e => {
-      if (e.target.closest("a[href]")) {
-        return;
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lispish REPL</title>
+    <style>
+      :root {
+        color-scheme: light dark;
       }
-
-      if (window.getSelection().toString().length === 0) {
-        input.focus();
+      body {
+        font-family: monospace;
+        font-size: 16px;
       }
-    });
-
-    window.lispishPrint = (text) => {
-      out.textContent += text + "\n";
-    };
-
-    await init();
-    const repl = new Lispish();
-
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        const line = input.value;
-        input.value = "";
-
-        out.textContent += prompt.textContent + line + "\n";
-        out.textContent += repl.eval_line(line);
-        prompt.textContent = repl.prompt();
+      pre {
+        margin: 0;
       }
-    });
-  </script>
-</body>
+      .row {
+        display: flex;
+      }
+      input {
+        flex: 1;
+        border: none;
+        outline: none;
+        font: inherit;
+        background: transparent;
+        color: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <p>
+      Lispish REPL (<a href="https://github.com/ggliv/lispish">source code</a>)
+    </p>
+    <pre id="out"></pre>
+    <div class="row">
+      <span id="prompt">lispish&gt; </span>
+      <input
+        id="in"
+        type="text"
+        autocomplete="false"
+        autocapitalize="false"
+        spellcheck="false"
+        autofocus
+      />
+    </div>
+
+    <script type="module">
+      import init, { Lispish } from "./pkg/lispish_wasm.js";
+
+      const out = document.getElementById("out");
+      const prompt = document.getElementById("prompt");
+      const input = document.getElementById("in");
+
+      document.addEventListener("click", (e) => {
+        if (e.target.closest("a[href]")) {
+          return;
+        }
+
+        if (window.getSelection().toString().length === 0) {
+          input.focus();
+        }
+      });
+
+      window.lispishPrint = (text) => {
+        out.textContent += text + "\n";
+      };
+
+      await init();
+      const repl = new Lispish();
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const line = input.value;
+          input.value = "";
+
+          out.textContent += prompt.textContent + line + "\n";
+          out.textContent += repl.eval_line(line);
+          prompt.textContent = repl.prompt();
+        }
+      });
+    </script>
+  </body>
 </html>
