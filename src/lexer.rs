@@ -97,7 +97,13 @@ pub fn lex(raw: &str) -> Result<Vec<Token>> {
         match (old_state, state) {
             (State::String, State::String) => wip_str.push(c),
             (State::String, State::StringEscape) => (),
-            (State::StringEscape, State::String) => wip_str.push(c),
+            (State::StringEscape, State::String) => match c {
+                '"' | '\\' => wip_str.push(c),
+                'n' => wip_str.push('\n'),
+                'r' => wip_str.push('\r'),
+                't' => wip_str.push('\t'),
+                _ => return Err(LispishError::InvalidEscapeSequence(c)),
+            },
             (State::String, _) => tokens.push(Token::String(std::mem::take(&mut wip_str))),
             (_, State::Atom) => wip_str.push(c),
             (State::Atom, _) => {
