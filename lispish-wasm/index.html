@@ -36,6 +36,12 @@
     const prompt = document.getElementById("prompt");
     const input = document.getElementById("in");
 
+    document.addEventListener("click", () => {
+      if (window.getSelection().toString().length === 0) {
+        input.focus();
+      }
+    });
+
     window.lispishPrint = (text) => {
       out.textContent += text + "\n";
     };
