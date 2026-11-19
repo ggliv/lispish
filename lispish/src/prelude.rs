@@ -21,7 +21,7 @@ pub const LISPISH_PRELUDE: &str = /* lisp */
     ; cmp
     (define =
       (lambda (a b)
-        (eq a b)))
+        (eq? a b)))
 
     (define >
       (lambda (a b)
