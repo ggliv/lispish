@@ -63,7 +63,7 @@
       });
 
       window.lispishPrint = (text) => {
-        out.textContent += text + "\n";
+        out.textContent += text;
       };
 
       await init();
@@ -75,7 +75,11 @@
           input.value = "";
 
           out.textContent += prompt.textContent + line + "\n";
-          out.textContent += repl.eval_line(line);
+
+          const ret = repl.eval_line(line);
+
+          out.textContent += ret;
+
           prompt.textContent = repl.prompt();
         }
       });
