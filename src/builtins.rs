@@ -211,7 +211,13 @@ pub fn lt(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
 
 pub fn print(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     for arg in args {
-        (rt.on_print)(&arg.fmt_with(&rt.heap));
+        match arg {
+            Value::Obj(obj_id) => match rt.heap.get(*obj_id) {
+                HeapObj::String(s) => (rt.on_print)(s),
+                _ => (rt.on_print)(&arg.fmt_with(&rt.heap)),
+            },
+            _ => (rt.on_print)(&arg.fmt_with(&rt.heap)),
+        }
     }
     Ok(args.last().copied().unwrap_or(rt.heap.nil()))
 }

@@ -220,7 +220,7 @@ impl Value {
             Value::Builtin(_, builtin_type) => format!("<builtin:{}>", builtin_type),
             Value::Obj(obj_id) => match heap.get(*obj_id) {
                 HeapObj::Symbol(s) => s.clone(),
-                HeapObj::String(s) => s.clone(),
+                HeapObj::String(s) => format!("{s:?}"),
                 HeapObj::List(values) => format!(
                     "({})",
                     values
