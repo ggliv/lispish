@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    builtins::{BUILTINS, BuiltinFn},
-    error::{LispishError, Result},
-    parser::Expr,
+    builtins::{BUILTINS, BuiltinFn}, error::{LispishError, Result}, eval::eval, lexer::lex, parser::{Expr, parse}, prelude::LISPISH_PRELUDE
 };
 
 pub struct Runtime {
@@ -27,11 +25,20 @@ impl Runtime {
             parent: None,
         });
 
-        Self {
+        let mut rt = Self {
             heap,
             global_env,
             on_print,
+        };
+
+        let prelude_tokens = lex(LISPISH_PRELUDE).expect("Failed to lex prelude");
+        let prelude_ast = parse(&prelude_tokens).expect("Failed to parse prelude");
+
+        for prelude_expr in prelude_ast {
+            eval(&prelude_expr, global_env, &mut rt).expect("Failed to eval prelude");
         }
+
+        rt
     }
 
     pub fn gc(&mut self) {
