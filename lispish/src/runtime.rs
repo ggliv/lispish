@@ -1,7 +1,12 @@
 use std::collections::HashMap;
 
 use crate::{
-    builtins::{BUILTINS, BuiltinFn}, error::{LispishError, Result}, eval::eval, lexer::lex, parser::{Expr, parse}, prelude::LISPISH_PRELUDE
+    builtins::{BUILTINS, BuiltinFn},
+    error::{LispishError, Result},
+    eval::eval,
+    lexer::lex,
+    parser::{Expr, parse},
+    prelude::LISPISH_PRELUDE,
 };
 
 pub struct Runtime {
@@ -13,7 +18,7 @@ pub struct Runtime {
 impl Runtime {
     /// Create a new runtime with builtins and prelude loaded
     pub fn with_print(on_print: Box<dyn FnMut(&str)>) -> Self {
-        let mut heap = Heap::new();
+        let mut heap = Heap::default();
 
         let builtin_bindings: HashMap<_, _> = BUILTINS
             .iter()
@@ -53,8 +58,8 @@ pub struct Heap {
     nil_id: ObjId,
 }
 
-impl Heap {
-    pub fn new() -> Self {
+impl Default for Heap {
+    fn default() -> Self {
         let mut new_heap = Self {
             slots: Vec::default(),
             free_slots: Vec::default(),
@@ -65,7 +70,9 @@ impl Heap {
 
         new_heap
     }
+}
 
+impl Heap {
     pub fn nil(&self) -> Value {
         Value::Obj(self.nil_id)
     }
