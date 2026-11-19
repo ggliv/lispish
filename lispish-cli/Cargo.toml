@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 lispish = { path = "../lispish" }
+rustyline = "19.0.0"

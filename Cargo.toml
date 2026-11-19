@@ -3,6 +3,5 @@ resolver = "2"
 members = [
     "lispish",
     "lispish-cli",
-    #"lispish-wasm",
 ]
 default-members = ["lispish-cli"]
