@@ -3,6 +3,8 @@ name: Deploy WASM REPL
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'lispish-cli/**'
 
 permissions:
   contents: read
