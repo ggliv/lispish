@@ -53,11 +53,40 @@ impl Runtime {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(from = "HeapRaw"))]
 #[derive(Debug)]
 pub struct Heap {
     slots: Vec<Option<HeapSlot>>,
+    #[cfg_attr(feature = "serde", serde(skip))]
     free_slots: Vec<ObjId>,
+    #[cfg_attr(feature = "serde", serde(skip))]
     nil_id: ObjId,
+}
+
+#[cfg(feature = "serde")]
+#[derive(serde::Deserialize)]
+struct HeapRaw {
+    slots: Vec<Option<HeapSlot>>,
+    nil_id: ObjId,
+}
+
+#[cfg(feature = "serde")]
+impl From<HeapRaw> for Heap {
+    fn from(value: HeapRaw) -> Self {
+        let free_slots = value
+            .slots
+            .iter()
+            .enumerate()
+            .filter_map(|(i, s)| s.is_none().then_some(ObjId(i)))
+            .collect();
+
+        Self {
+            slots: value.slots,
+            free_slots: free_slots,
+            nil_id: value.nil_id,
+        }
+    }
 }
 
 impl Default for Heap {
@@ -198,15 +227,21 @@ impl Heap {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ObjId(pub usize);
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 #[derive(Debug, Clone)]
 struct HeapSlot {
+    #[cfg_attr(feature = "serde", serde(skip))]
     marked: bool,
     obj: HeapObj,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
 pub enum HeapObj {
     Symbol(String),
@@ -223,6 +258,7 @@ pub enum HeapObj {
     },
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, Copy)]
 pub enum Value {
     Number(f64),

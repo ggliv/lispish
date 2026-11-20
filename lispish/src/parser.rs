@@ -1,6 +1,7 @@
 use crate::error::{LispishError, Result};
 use crate::lexer::Token;
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Symbol(String),

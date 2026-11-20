@@ -5,6 +5,7 @@ pub type BuiltinFn = fn(&[Value], &mut Runtime) -> Result<Value>;
 
 macro_rules! define_builtins {
     ($($variant:ident => ($name:expr, $func:expr)),* $(,)?) => {
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub enum BuiltinType {
             $($variant),*
