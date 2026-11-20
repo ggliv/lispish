@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    builtins::{BUILTINS, BuiltinFn},
+    builtins::BuiltinType,
     error::{LispishError, Result},
     eval::eval,
     lexer::lex,
@@ -20,9 +20,9 @@ impl Runtime {
     pub fn with_print(on_print: Box<dyn FnMut(&str)>) -> Self {
         let mut heap = Heap::default();
 
-        let builtin_bindings: HashMap<_, _> = BUILTINS
+        let builtin_bindings: HashMap<_, _> = BuiltinType::VARIANTS
             .iter()
-            .map(|b| (b.0.to_string(), Value::Builtin(b.2, b.1)))
+            .map(|b| (b.as_symbol().to_string(), Value::Builtin(*b)))
             .collect();
 
         let global_env = heap.alloc(HeapObj::Env {
@@ -227,7 +227,7 @@ pub enum HeapObj {
 pub enum Value {
     Number(f64),
     Bool(bool),
-    Builtin(BuiltinFn, crate::builtins::BuiltinType),
+    Builtin(BuiltinType),
     Obj(ObjId),
 }
 
@@ -237,7 +237,7 @@ impl Value {
             Value::Number(n) => n.to_string(),
             Value::Bool(true) => "#t".to_string(),
             Value::Bool(false) => "#f".to_string(),
-            Value::Builtin(_, builtin_type) => format!("<builtin:{}>", builtin_type),
+            Value::Builtin(t) => format!("<builtin:{}>", t.as_symbol()),
             Value::Obj(obj_id) => match heap.get(*obj_id) {
                 HeapObj::Symbol(s) => s.clone(),
                 HeapObj::String(s) => format!("{s:?}"),

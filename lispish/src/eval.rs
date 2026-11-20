@@ -115,7 +115,7 @@ fn apply(f: Value, args: &[Value], rt: &mut Runtime) -> Result<Value> {
     let heap = &mut rt.heap;
 
     match f {
-        Value::Builtin(b, _) => b(args, rt),
+        Value::Builtin(t) => (t.resolve())(args, rt),
         Value::Obj(id) => {
             let HeapObj::Closure { params, body, env } = heap.get(id) else {
                 return Err(LispishError::TypeMismatch);

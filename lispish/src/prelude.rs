@@ -93,7 +93,7 @@ mod test {
         let obj0 = Value::Obj(obj0);
         let obj1 = rt.heap.alloc_val(obj1);
 
-        match builtins::eq(&[obj0, obj1], rt) {
+        match (builtins::BuiltinType::Eq.resolve())(&[obj0, obj1], rt) {
             Ok(Value::Bool(b)) => b,
             _ => panic!("expected eq builtin to return a bool"),
         }

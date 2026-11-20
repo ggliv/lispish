@@ -1,60 +1,52 @@
-use std::fmt::Display;
-
 use crate::error::{LispishError, Result};
 use crate::runtime::{HeapObj, Runtime, Value};
 
 pub type BuiltinFn = fn(&[Value], &mut Runtime) -> Result<Value>;
 
-pub const BUILTINS: &[(&str, BuiltinType, BuiltinFn)] = &[
-    ("cons", BuiltinType::Cons, cons),
-    ("car", BuiltinType::Car, car),
-    ("cdr", BuiltinType::Cdr, cdr),
-    ("eq?", BuiltinType::Eq, eq),
-    ("atom?", BuiltinType::Atom, atom),
-    ("+", BuiltinType::Add, add),
-    ("-", BuiltinType::Sub, sub),
-    ("*", BuiltinType::Mul, mul),
-    ("/", BuiltinType::Div, div),
-    ("<", BuiltinType::Lt, lt),
-    ("print", BuiltinType::Print, print),
-];
+macro_rules! define_builtins {
+    ($($variant:ident => ($name:expr, $func:expr)),* $(,)?) => {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub enum BuiltinType {
+            $($variant),*
+        }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BuiltinType {
-    Cons,
-    Car,
-    Cdr,
-    Eq,
-    Atom,
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Lt,
-    Print,
-}
+        impl BuiltinType {
+            pub const VARIANTS: &'static [Self] = &[$(Self::$variant),*];
 
-impl Display for BuiltinType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                BuiltinType::Cons => "cons",
-                BuiltinType::Car => "car",
-                BuiltinType::Cdr => "cdr",
-                BuiltinType::Eq => "eq?",
-                BuiltinType::Atom => "atom?",
-                BuiltinType::Add => "+",
-                BuiltinType::Sub => "-",
-                BuiltinType::Mul => "*",
-                BuiltinType::Div => "/",
-                BuiltinType::Lt => "<",
-                BuiltinType::Print => "print",
+            pub fn resolve(&self) -> BuiltinFn {
+                match self {
+                    $(Self::$variant => $func),*
+                }
             }
-        )
-    }
+
+            pub fn as_symbol(&self) -> &'static str {
+                match self {
+                    $(Self::$variant => $name),*
+                }
+            }
+        }
+
+        impl core::fmt::Display for BuiltinType {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.as_symbol())
+            }
+        }
+    };
 }
+
+define_builtins!(
+    Cons => ("cons", cons),
+    Car => ("car", car),
+    Cdr => ("cdr", cdr),
+    Eq => ("eq?", eq),
+    Atom => ("atom?", atom),
+    Add => ("+", add),
+    Sub => ("-", sub),
+    Mul => ("*", mul),
+    Div => ("/", div),
+    Lt => ("<", lt),
+    Print => ("print", print),
+);
 
 fn all_nums<'a>(args: impl IntoIterator<Item = &'a Value>) -> Option<Vec<f64>> {
     args.into_iter()
@@ -65,7 +57,7 @@ fn all_nums<'a>(args: impl IntoIterator<Item = &'a Value>) -> Option<Vec<f64>> {
         .collect::<Option<_>>()
 }
 
-pub fn cons(args: &[Value], rt: &mut Runtime) -> Result<Value> {
+fn cons(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     let [head, tail] = args else {
         return Err(LispishError::ArityMismatch {
             name: "cons".into(),
@@ -89,7 +81,7 @@ pub fn cons(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     Ok(rt.heap.alloc_val(HeapObj::List(new_vec)))
 }
 
-pub fn car(args: &[Value], rt: &mut Runtime) -> Result<Value> {
+fn car(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     if args.len() != 1 {
         return Err(LispishError::ArityMismatch {
             name: "car".into(),
@@ -108,7 +100,7 @@ pub fn car(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     list.first().copied().ok_or(LispishError::EmptyList)
 }
 
-pub fn cdr(args: &[Value], rt: &mut Runtime) -> Result<Value> {
+fn cdr(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     if args.len() != 1 {
         return Err(LispishError::ArityMismatch {
             name: "cdr".into(),
@@ -130,12 +122,12 @@ pub fn cdr(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     }
 }
 
-pub fn eq(args: &[Value], rt: &mut Runtime) -> Result<Value> {
+fn eq(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     fn eq_pair(a: &Value, b: &Value, rt: &Runtime) -> bool {
         match (a, b) {
             (Value::Number(a), Value::Number(b)) => a == b,
             (Value::Bool(a), Value::Bool(b)) => a == b,
-            (Value::Builtin(_, a), Value::Builtin(_, b)) => a == b,
+            (Value::Builtin(a), Value::Builtin(b)) => a == b,
             (Value::Obj(a), Value::Obj(b)) => match (rt.heap.get(*a), rt.heap.get(*b)) {
                 (HeapObj::Symbol(a), HeapObj::Symbol(b)) => a == b,
                 (HeapObj::String(a), HeapObj::String(b)) => a == b,
@@ -155,7 +147,7 @@ pub fn eq(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     ))
 }
 
-pub fn atom(args: &[Value], rt: &mut Runtime) -> Result<Value> {
+fn atom(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     if args.is_empty() {
         return Err(LispishError::ArityMismatch {
             name: "atom".into(),
@@ -173,7 +165,7 @@ pub fn atom(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     })))
 }
 
-pub fn add(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
+fn add(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
     if args.len() < 2 {
         return Err(LispishError::ArityMismatch {
             name: "add".into(),
@@ -186,7 +178,7 @@ pub fn add(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
     Ok(Value::Number(nums.iter().fold(0., |acc, n| n + acc)))
 }
 
-pub fn sub(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
+fn sub(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
     if args.len() < 2 {
         return Err(LispishError::ArityMismatch {
             name: "sub".into(),
@@ -201,7 +193,7 @@ pub fn sub(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
     ))
 }
 
-pub fn mul(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
+fn mul(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
     if args.len() < 2 {
         return Err(LispishError::ArityMismatch {
             name: "mul".into(),
@@ -214,7 +206,7 @@ pub fn mul(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
     Ok(Value::Number(nums.iter().fold(1., |acc, n| n * acc)))
 }
 
-pub fn div(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
+fn div(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
     if args.len() < 2 {
         return Err(LispishError::ArityMismatch {
             name: "div".into(),
@@ -229,7 +221,7 @@ pub fn div(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
     ))
 }
 
-pub fn lt(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
+fn lt(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
     if args.len() < 2 {
         return Err(LispishError::ArityMismatch {
             name: "lt".into(),
@@ -243,7 +235,7 @@ pub fn lt(args: &[Value], _rt: &mut Runtime) -> Result<Value> {
     Ok(Value::Bool(nums.windows(2).all(|w| w[0] < w[1])))
 }
 
-pub fn print(args: &[Value], rt: &mut Runtime) -> Result<Value> {
+fn print(args: &[Value], rt: &mut Runtime) -> Result<Value> {
     for arg in args {
         match arg {
             Value::Obj(obj_id) => match rt.heap.get(*obj_id) {
