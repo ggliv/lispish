@@ -60,8 +60,6 @@ pub struct Heap {
     slots: Vec<Option<HeapSlot>>,
     #[cfg_attr(feature = "serde", serde(skip))]
     free_slots: Vec<ObjId>,
-    #[cfg_attr(feature = "serde", serde(skip))]
-    nil_id: ObjId,
 }
 
 #[cfg(feature = "serde")]
@@ -84,7 +82,6 @@ impl From<HeapRaw> for Heap {
         Self {
             slots: value.slots,
             free_slots: free_slots,
-            nil_id: value.nil_id,
         }
     }
 }
@@ -94,18 +91,20 @@ impl Default for Heap {
         let mut new_heap = Self {
             slots: Vec::default(),
             free_slots: Vec::default(),
-            nil_id: ObjId(0),
         };
 
-        new_heap.nil_id = new_heap.alloc(HeapObj::List(Vec::new()));
+        // must be the first thing allocated so that Self::NIL_ID is accurate
+        new_heap.alloc(HeapObj::List(Vec::new()));
 
         new_heap
     }
 }
 
 impl Heap {
+    pub const NIL_ID: ObjId = ObjId(0);
+
     pub fn nil(&self) -> Value {
-        Value::Obj(self.nil_id)
+        Value::Obj(Self::NIL_ID)
     }
 
     pub(crate) fn alloc(&mut self, obj: HeapObj) -> ObjId {
@@ -207,9 +206,9 @@ impl Heap {
             slot.marked = false;
         }
 
-        self.slots[self.nil_id.0]
+        self.slots[Self::NIL_ID.0]
             .as_mut()
-            .expect("nil_id must point to an object")
+            .expect("Self::NIL_ID must point to an object")
             .marked = true;
 
         for root in roots {
