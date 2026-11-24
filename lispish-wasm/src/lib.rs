@@ -3,7 +3,7 @@ use lispish::{
     eval,
     lexer::{self, Token},
     parser,
-    runtime::Runtime,
+    runtime::{Heap, Runtime},
 };
 use wasm_bindgen::prelude::*;
 
@@ -23,12 +23,42 @@ struct Lispish {
 #[wasm_bindgen]
 impl Lispish {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Result<Self, JsValue> {
-        Ok(Self {
+    pub fn new() -> Self {
+        Self {
             rt: Runtime::with_print(Box::new(lispish_print)),
             tokens: Vec::new(),
             line: String::new(),
-        })
+        }
+    }
+
+    pub fn try_from_json(json: Option<String>) -> Self {
+        let Some(json) = json else {
+            return Self::new();
+        };
+
+        let Ok(heap) = serde_json::from_str::<Heap>(&json) else {
+            // TODO notify the outside world if we get here
+            return Self::new();
+        };
+
+        let mut rt = Runtime::with_print(Box::new(lispish_print));
+
+        rt.heap = heap;
+        // TODO also need to reset nil value. should be fine for now though since nil is always the
+        // first thing added to heap.
+
+        Self {
+            rt,
+            tokens: Vec::new(),
+            line: String::new(),
+        }
+    }
+
+    pub fn to_json(&self) -> String {
+        match serde_json::to_string(&self.rt.heap) {
+            Ok(j) => j,
+            Err(_) => String::new(),
+        }
     }
 
     pub fn prompt(&self) -> String {

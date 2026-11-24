@@ -31,6 +31,7 @@
   <body>
     <p>
       Lispish REPL (<a href="https://github.com/ggliv/lispish">source code</a>)
+      <button id="clear" type="button">Clear persistent REPL state and reload</button>
     </p>
     <pre id="out"></pre>
     <div class="row">
@@ -48,6 +49,9 @@
     <script type="module">
       import init, { Lispish } from "./pkg/lispish_wasm.js";
 
+      const HEAP_STATE_KEY = "heapState";
+
+      const clear = document.getElementById("clear");
       const out = document.getElementById("out");
       const prompt = document.getElementById("prompt");
       const input = document.getElementById("in");
@@ -67,7 +71,7 @@
       };
 
       await init();
-      const repl = new Lispish();
+      const repl = Lispish.try_from_json(localStorage.getItem(HEAP_STATE_KEY));
 
       input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
@@ -78,11 +82,20 @@
 
           const ret = repl.eval_line(line);
 
+          localStorage.setItem(HEAP_STATE_KEY, repl.to_json());
+
           out.textContent += ret;
 
           prompt.textContent = repl.prompt();
         }
       });
+
+
+      clear.addEventListener("click", () => {
+        localStorage.removeItem(HEAP_STATE_KEY);
+        window.location.reload();
+      });
+
     </script>
   </body>
 </html>
